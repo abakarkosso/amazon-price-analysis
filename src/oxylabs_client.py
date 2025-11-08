@@ -216,7 +216,7 @@ def search_competitors(query_title: str, domain: str, categories: List[str], pag
     Returns:
         List of competitor search result dictionaries
     """
-    st.write("🔎 Searching for competitors")
+    st.write("Searching for competitors")
 
     search_title = clean_product_name(query_title)
     results = []
@@ -250,7 +250,7 @@ def search_competitors(query_title: str, domain: str, categories: List[str], pag
 
             time.sleep(0.1)
 
-    st.write(f"✅ Found {len(results)} competitors")
+    st.write(f"Found {len(results)} competitors")
     return results
 
 
@@ -268,7 +268,7 @@ def scrape_multiple_products(asins: List[str], geo_location: str, domain: str) -
     Returns:
         List of product dictionaries (may be shorter than input if some fail)
     """
-    st.write("🔎 Scraping details")
+    st.write("Scraping details")
     products = []
 
     progress_text = st.empty()
@@ -282,7 +282,7 @@ def scrape_multiple_products(asins: List[str], geo_location: str, domain: str) -
 
             product = scrape_product_details(a, geo_location, domain)
             products.append(product)
-            progress_text.write(f"✅ Found: {product.get('title', a)}")
+            progress_text.write(f"Found: {product.get('title', a)}")
         except Exception as e:
             st.warning(f"Failed to scrape {a}: {str(e)}")
             continue
@@ -291,5 +291,5 @@ def scrape_multiple_products(asins: List[str], geo_location: str, domain: str) -
     progress_text.empty()
     progress_bar.empty()
 
-    st.write(f"✅ Successfully scraped {len(products)} out of {total} competitors")
+    st.write(f"Successfully scraped {len(products)} out of {total} competitors")
     return products

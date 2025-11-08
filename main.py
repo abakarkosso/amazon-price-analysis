@@ -77,7 +77,7 @@ def main() -> None:
     Sets up the Streamlit page configuration and renders the main application UI,
     including product scraping, competitor discovery, and AI analysis features.
     """
-    st.set_page_config(page_title="Amazon Competitor Analysis", page_icon="📚", layout="wide")
+    st.set_page_config(page_title="Amazon Competitor Analysis", layout="wide")
     render_header()
     asin, geo, domain = render_inputs()
 

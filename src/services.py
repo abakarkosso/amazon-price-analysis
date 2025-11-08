@@ -57,7 +57,7 @@ def fetch_and_store_competitors(parent_asin: str, domain: str, geo_location: str
 
     search_domain = parent.get("amazon_domain", domain)
     search_geo = parent.get("geo_location", geo_location)
-    st.write(f"🌍 Using domain: {search_domain} | Geo Location: {search_geo}")
+    st.write(f"Using domain: {search_domain} | Geo Location: {search_geo}")
 
     search_categories = []
     if parent.get("categories"):
@@ -95,7 +95,7 @@ def fetch_and_store_competitors(parent_asin: str, domain: str, geo_location: str
         db.insert_product(comp)
         stored_comps.append(comp)
 
-    st.write("📈 Competitor Summary")
+    st.write("Competitor Summary")
     for comp in stored_comps:
         price = comp.get("price", "-")
         currency = comp.get("currency", "-")
