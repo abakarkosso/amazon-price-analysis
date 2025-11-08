@@ -1,0 +1,7 @@
+langchain>=0.3.27
+langchain-openai>=0.3.33
+openai>=1.107.2
+python-dotenv>=1.1.1
+requests>=2.27.0
+streamlit>=1.49.1
+tinydb>=4.8.2
