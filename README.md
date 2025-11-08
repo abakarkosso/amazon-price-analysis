@@ -1,106 +1,52 @@
 # Amazon Price Competitor Analysis
 
-A full-stack web application for analyzing Amazon product prices and competitors using web scraping and AI-powered insights. This project demonstrates expertise in API integration, data processing, LLM integration, and modern Python development practices.
+## Overview
 
-## 🚀 Key Features
+A full-stack web application for analyzing Amazon product prices and competitors using web scraping and AI-powered insights. Built with Python and Streamlit, this tool helps businesses and sellers understand their competitive landscape by scraping product data from Amazon, discovering competitors, and generating intelligent market analysis using OpenAI GPT-4.
 
-- 🔍 **Product Scraping**: Scrape Amazon product details by ASIN across multiple domains (com, ca, co.uk, de, fr, it, ae)
-- 📊 **Competitor Discovery**: Automatically find and analyze competitors based on product categories using multiple search strategies
-- 🤖 **AI-Powered Analysis**: Generate intelligent market insights and recommendations using OpenAI GPT-4
-- 💾 **Data Storage**: Efficient local data storage using TinyDB with proper data normalization
-- 🌍 **Multi-Region Support**: Analyze products from different Amazon domains and geographic locations
-- 📈 **Price Comparison**: Compare prices, ratings, and key features across competitors
-- 🎨 **Interactive UI**: User-friendly Streamlit interface with real-time progress tracking
-- ⚡ **Error Handling**: Comprehensive error handling with user-friendly feedback
+The project demonstrates expertise in API integration, data processing, LLM integration, error handling, and modern Python development practices. It consists of a single Streamlit application that handles product scraping, competitor discovery, data storage, and AI-powered analysis.
 
-## 🛠️ Technologies Used
+## Features
 
-- **Python 3.13+**: Modern Python with type hints and best practices
-- **Streamlit**: Interactive web application framework
-- **LangChain**: LLM framework for structured AI interactions
-- **OpenAI GPT-4**: Advanced AI analysis and insights
-- **Oxylabs API**: Professional web scraping service
-- **TinyDB**: Lightweight JSON-based database
-- **Pydantic**: Data validation and serialization
-- **Requests**: HTTP client for API interactions
+### Product Scraping
+- Scrape Amazon product details by ASIN across multiple domains (com, ca, co.uk, de, fr, it, ae)
+- Extract comprehensive product information: price, rating, images, categories, brand, stock status
+- Support for multiple geographic locations and Amazon marketplaces
+- Real-time progress tracking and error handling
 
-## Prerequisites
+### Competitor Discovery
+- Automatically find competitors based on product categories and title
+- Multiple search strategies: featured, price ascending/descending, average rating
+- Deduplication and filtering of invalid products
+- Limits to top 20 competitors for efficiency
 
-- Python 3.13 or higher
-- Oxylabs account (for web scraping)
-- OpenAI API key (for LLM analysis)
+### AI-Powered Analysis
+- Generate intelligent market insights using OpenAI GPT-4
+- Structured analysis output including:
+  - Market summary and trends
+  - Product positioning analysis
+  - Top competitors with key differentiators
+  - Actionable pricing and marketing recommendations
+- Currency-aware price comparisons
+- Multi-region analysis support
 
-## 📦 Installation
+### Data Management
+- Local JSON database using TinyDB for data persistence
+- Track parent-child relationships between products and competitors
+- Timestamp tracking for data freshness
+- Efficient querying and searching capabilities
 
-1. **Clone the repository:**
-```bash
-git clone https://github.com/abakarkosso/amazon-price-analysis.git
-cd amazon-price-analysis
-```
+### User Interface
+- Clean, intuitive Streamlit interface
+- Real-time progress bars and status updates
+- Product cards with images and key metrics
+- Pagination for large product lists
+- Error messages with user-friendly feedback
 
-2. **Create a virtual environment:**
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-3. **Install dependencies:**
-```bash
-pip install -r requirements.txt
-```
-
-Or install as a package:
-```bash
-pip install -e .
-```
-
-4. **Set up environment variables:**
-```bash
-cp .env.example .env
-```
-
-Edit `.env` and add your API credentials:
-```env
-OXYLABS_USERNAME=your_oxylabs_username
-OXYLABS_PASSWORD=your_oxylabs_password
-OPENAI_API_KEY=your_openai_api_key
-```
-
-## 🚀 Quick Start
-
-1. **Start the application:**
-```bash
-streamlit run main.py
-```
-
-2. **Open your browser:**
-Navigate to `http://localhost:8501`
-
-3. **Scrape a product:**
-   - Enter a product ASIN (e.g., `B0CX23VSAS`)
-   - Select the Amazon domain
-   - Enter your zip/postal code
-   - Click "Scrape Product"
-
-4. **Analyze competitors:**
-   - Click "Start analyzing competitors" on any product card
-   - Wait for competitor discovery to complete
-   - Click "Analyze with LLM" for AI-powered insights
-
-## 🏗️ Architecture
-
-The application follows a clean architecture pattern with clear separation of concerns:
-
-- **Presentation Layer** (`main.py`): Streamlit UI components and user interactions
-- **Service Layer** (`src/services.py`): Business logic and orchestration
-- **Data Layer** (`src/db.py`): Database operations and data persistence
-- **API Layer** (`src/oxylabs_client.py`): External API integration and data normalization
-- **AI Layer** (`src/llm.py`): LLM integration and analysis generation
-
-## 📁 Project Structure
+## Directory Structure
 
 ```
-.
+amazon-price-analysis/
 ├── main.py                    # Streamlit application entry point
 ├── src/
 │   ├── __init__.py           # Package initialization
@@ -116,7 +62,126 @@ The application follows a clean architecture pattern with clear separation of co
 └── README.md                 # Project documentation
 ```
 
-## 🔄 How It Works
+## Setup
+
+### Prerequisites
+- Python 3.13 or higher
+- Oxylabs account (for web scraping) - [Sign up here](https://oxylabs.io/)
+- OpenAI API key (for LLM analysis) - [Get API key here](https://platform.openai.com/api-keys)
+
+### Installation
+
+1. **Clone the Repository:**
+
+```bash
+git clone https://github.com/abakarkosso/amazon-price-analysis.git
+cd amazon-price-analysis
+```
+
+2. **Set Up Virtual Environment:**
+
+```bash
+python -m venv venv
+# Windows
+venv\Scripts\activate
+# Mac/Linux
+source venv/bin/activate
+```
+
+3. **Install Dependencies:**
+
+```bash
+pip install -r requirements.txt
+```
+
+Current dependencies:
+- `streamlit>=1.49.1` - Web application framework
+- `langchain>=0.3.27` - LLM framework and tooling
+- `langchain-openai>=0.3.33` - OpenAI integration for LangChain
+- `openai>=1.107.2` - OpenAI API client
+- `python-dotenv>=1.1.1` - Environment variable management
+- `requests>=2.27.0` - HTTP library for API calls
+- `tinydb>=4.8.2` - Lightweight JSON database
+
+4. **Configure .env:**
+
+Create `.env` in the project root:
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` and add your API credentials:
+
+```env
+# Oxylabs API Credentials
+OXYLABS_USERNAME=your_oxylabs_username
+OXYLABS_PASSWORD=your_oxylabs_password
+
+# OpenAI API Key
+OPENAI_API_KEY=your_openai_api_key
+```
+
+**Getting API Keys:**
+- **Oxylabs**: Sign up at [oxylabs.io](https://oxylabs.io/) and get your credentials from the dashboard
+- **OpenAI**: Get your API key from [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
+
+5. **Run the Application:**
+
+```bash
+streamlit run main.py
+```
+
+The application will open in your browser at `http://localhost:8501`.
+
+## Usage
+
+### Scraping a Product
+
+1. Enter a product ASIN (e.g., `B0CX23VSAS`)
+2. Select the Amazon domain (com, ca, co.uk, de, fr, it, ae)
+3. Enter your zip/postal code (e.g., `83980`)
+4. Click "Scrape Product"
+5. Wait for the product details to be scraped and stored
+
+### Analyzing Competitors
+
+1. Click "Start analyzing competitors" on any product card
+2. The system will:
+   - Search for competitors based on product categories
+   - Scrape detailed information for each competitor
+   - Display competitor summary with prices
+3. Click "Analyze with LLM" to get AI-powered insights
+4. View comprehensive analysis including:
+   - Market summary
+   - Product positioning
+   - Top competitors with key points
+   - Actionable recommendations
+
+### Managing Products
+
+- All scraped products are stored in the local database (`data.json`)
+- View paginated list of all products
+- Each product card shows: image, title, price, brand, domain, and geo location
+- Competitors are linked to their parent products
+
+### Refreshing Data
+
+- Click "Refresh Competitors" to re-scrape competitor data
+- New products can be scraped at any time
+- Database persists between application restarts
+
+## Architecture
+
+The application follows a clean architecture pattern with clear separation of concerns:
+
+- **Presentation Layer** (`main.py`): Streamlit UI components and user interactions
+- **Service Layer** (`src/services.py`): Business logic and orchestration
+- **Data Layer** (`src/db.py`): Database operations and data persistence
+- **API Layer** (`src/oxylabs_client.py`): External API integration and data normalization
+- **AI Layer** (`src/llm.py`): LLM integration and analysis generation
+
+## How It Works
 
 ### 1. Product Scraping
 - Uses Oxylabs API to scrape Amazon product pages
@@ -148,13 +213,7 @@ The application follows a clean architecture pattern with clear separation of co
   - Actionable pricing and marketing recommendations
 - Handles currency conversion and multi-region analysis
 
-## Environment Variables
-
-- `OXYLABS_USERNAME`: Your Oxylabs username
-- `OXYLABS_PASSWORD`: Your Oxylabs password
-- `OPENAI_API_KEY`: Your OpenAI API key
-
-## 💻 Code Quality
+## Code Quality
 
 - **Type Hints**: Full type annotation coverage for better code maintainability
 - **Docstrings**: Comprehensive documentation for all functions and classes
@@ -162,34 +221,75 @@ The application follows a clean architecture pattern with clear separation of co
 - **Code Organization**: Clean separation of concerns and modular design
 - **Best Practices**: Follows Python PEP 8 style guidelines
 
-## 📚 Dependencies
+## Notes
 
-See `requirements.txt` or `pyproject.toml` for complete dependency list:
+### API Requirements
+- **Oxylabs**: Requires active subscription for web scraping. Rate limits apply based on your plan.
+- **OpenAI**: Requires API key with GPT-4 access. Costs are based on API usage.
+- Both APIs are necessary for full functionality.
 
-- `streamlit>=1.49.1`: Web application framework
-- `langchain>=0.3.27`: LLM framework and tooling
-- `langchain-openai>=0.3.33`: OpenAI integration for LangChain
-- `openai>=1.107.2`: OpenAI API client
-- `python-dotenv>=1.1.1`: Environment variable management
-- `requests>=2.27.0`: HTTP library for API calls
-- `tinydb>=4.8.2`: Lightweight JSON database
+### Data Storage
+- All data is stored locally in `data.json` (TinyDB)
+- Database file is automatically created on first run
+- Data persists between application restarts
+- Database file is ignored by git (not committed to repository)
+
+### Rate Limits
+- Oxylabs API: Rate limits depend on your subscription plan
+- OpenAI API: Rate limits depend on your API tier
+- The application includes delays (0.1s) between requests to respect rate limits
+
+### Geographic Support
+- Supports multiple Amazon domains: com, ca, co.uk, de, fr, it, ae
+- Geographic location affects pricing and availability
+- Currency is automatically detected and displayed
+
+### Troubleshooting
+- **API Errors**: Check your credentials in `.env` file
+- **Scraping Failures**: Verify ASIN is correct and product exists on selected domain
+- **LLM Errors**: Ensure OpenAI API key is valid and has GPT-4 access
+- **Database Issues**: Delete `data.json` to reset the database
 
 ## Limitations
 
 - Requires active Oxylabs and OpenAI API subscriptions
 - Rate limits apply based on your API plan
-- Data is stored locally (JSON file)
+- Data is stored locally (JSON file) - not suitable for production scale
 - Scraping may be subject to Amazon's terms of service
+- Competitor analysis is limited to top 20 competitors
+- Real-time data depends on API availability
 
-## Contributing
+## Future Enhancements
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+- Add support for more Amazon marketplaces
+- Implement data export (CSV, JSON, Excel)
+- Add price history tracking and alerts
+- Implement competitor price monitoring over time
+- Add filtering and sorting options for competitors
+- Support for batch ASIN processing
+- Add visualization charts for price comparisons
+- Implement user authentication and multi-user support
+- Add database migration to PostgreSQL for production use
+- Implement caching to reduce API calls
+- Add unit tests and integration tests
+- Implement CI/CD pipeline
 
 ## License
 
-This project is open source and available under the MIT License.
+This project is open source and available under the [MIT License](LICENSE).
 
 ## Disclaimer
 
-This tool is for educational and research purposes. Ensure you comply with Amazon's Terms of Service and use web scraping responsibly. Respect rate limits and be mindful of the impact on target servers.
+This tool is for educational and research purposes. Ensure you comply with Amazon's Terms of Service and use web scraping responsibly. Respect rate limits and be mindful of the impact on target servers. The authors are not responsible for any misuse of this tool.
 
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+
+---
+
+**Built with:** Python, Streamlit, LangChain, OpenAI GPT-4, Oxylabs API, TinyDB
+
+**Author:** [Your Name]
+
+**Repository:** [https://github.com/abakarkosso/amazon-price-analysis](https://github.com/abakarkosso/amazon-price-analysis)
