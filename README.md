@@ -290,6 +290,6 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 
 **Built with:** Python, Streamlit, LangChain, OpenAI GPT-4, Oxylabs API, TinyDB
 
-**Author:** [Your Name]
+**Author:** abakarkosso
 
 **Repository:** [https://github.com/abakarkosso/amazon-price-analysis](https://github.com/abakarkosso/amazon-price-analysis)
