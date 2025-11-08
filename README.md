@@ -34,8 +34,8 @@ A full-stack web application for analyzing Amazon product prices and competitors
 
 1. **Clone the repository:**
 ```bash
-git clone <your-repo-url>
-cd AmazonPriceCompetitorAnalysisLLM-main
+git clone https://github.com/abakarkosso/amazon-price-analysis.git
+cd amazon-price-analysis
 ```
 
 2. **Create a virtual environment:**
