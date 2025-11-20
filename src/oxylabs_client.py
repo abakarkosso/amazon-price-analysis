@@ -1,16 +1,14 @@
 """
-Oxylabs API client for Amazon product scraping and search.
+Oxylabs API Client
 
-Handles all interactions with the Oxylabs API for scraping Amazon products
-and performing search queries.
+Handles interactions with the Oxylabs Realtime API for Amazon scraping.
 """
 
 import json
 import os
 import time
 import requests
-import streamlit as st
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Generator
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -19,15 +17,7 @@ OXYLABS_BASE_URL = "https://realtime.oxylabs.io/v1/queries"
 
 
 def extract_content(payload: Dict) -> Dict:
-    """
-    Extract content from Oxylabs API response payload.
-    
-    Args:
-        payload: Raw API response dictionary
-        
-    Returns:
-        Extracted content dictionary
-    """
+    # Helper to dig out the actual content from the nested API response
     if isinstance(payload, dict):
         if "results" in payload and isinstance(payload["results"], list) and payload["results"]:
             first = payload["results"][0]
@@ -40,30 +30,16 @@ def extract_content(payload: Dict) -> Dict:
 
 
 def post_query(payload: Dict) -> Dict:
-    """
-    Send a POST request to the Oxylabs API.
-    
-    Args:
-        payload: Request payload dictionary
-        
-    Returns:
-        API response as dictionary
-        
-    Raises:
-        requests.HTTPError: If the API request fails
-        ValueError: If credentials are missing
-    """
     username = os.getenv("OXYLABS_USERNAME")
     password = os.getenv("OXYLABS_PASSWORD")
     
     if not username or not password:
-        raise ValueError("Oxylabs credentials not found. Please check your .env file.")
+        raise ValueError("Missing Oxylabs credentials in .env")
 
     response = requests.post(OXYLABS_BASE_URL, auth=(username, password), json=payload)
     response.raise_for_status()
-    response_json = response.json()
-
-    return response_json
+    
+    return response.json()
 
 
 def normalize_product(content: Dict) -> Dict:
@@ -216,8 +192,6 @@ def search_competitors(query_title: str, domain: str, categories: List[str], pag
     Returns:
         List of competitor search result dictionaries
     """
-    st.write("Searching for competitors")
-
     search_title = clean_product_name(query_title)
     results = []
     seen_asins = set()
@@ -247,49 +221,46 @@ def search_competitors(query_title: str, domain: str, categories: List[str], pag
                 if result and result["asin"] not in seen_asins:
                     seen_asins.add(result["asin"])
                     results.append(result)
-
+                    
             time.sleep(0.1)
 
-    st.write(f"Found {len(results)} competitors")
     return results
 
 
-def scrape_multiple_products(asins: List[str], geo_location: str, domain: str) -> List[Dict]:
+def scrape_multiple_products(asins: List[str], geo_location: str, domain: str) -> Generator[Dict, None, None]:
     """
     Scrape detailed information for multiple products.
     
-    Shows progress bar and handles errors gracefully for individual products.
+    Yields progress updates and product data.
     
     Args:
         asins: List of ASINs to scrape
         geo_location: Geographic location for scraping
         domain: Amazon domain to scrape from
         
-    Returns:
-        List of product dictionaries (may be shorter than input if some fail)
+    Yields:
+        Dictionary containing status ('processing', 'success', 'error') and data/message
     """
-    st.write("Scraping details")
-    products = []
-
-    progress_text = st.empty()
-    progress_bar = st.progress(0)
     total = len(asins)
 
     for idx, a in enumerate(asins, 1):
         try:
-            progress_text.write(f"Processing competitor {idx}/{total}: {a}")
-            progress_bar.progress(idx / total)
+            yield {
+                "status": "processing",
+                "current": idx,
+                "total": total,
+                "asin": a
+            }
 
             product = scrape_product_details(a, geo_location, domain)
-            products.append(product)
-            progress_text.write(f"Found: {product.get('title', a)}")
+            yield {
+                "status": "success",
+                "product": product
+            }
         except Exception as e:
-            st.warning(f"Failed to scrape {a}: {str(e)}")
-            continue
+            yield {
+                "status": "error",
+                "asin": a,
+                "message": str(e)
+            }
         time.sleep(0.1)
-
-    progress_text.empty()
-    progress_bar.empty()
-
-    st.write(f"Successfully scraped {len(products)} out of {total} competitors")
-    return products

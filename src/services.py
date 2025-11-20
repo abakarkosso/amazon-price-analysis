@@ -1,54 +1,28 @@
 """
-Service layer for business logic operations.
+Service Layer
 
-Handles product scraping, competitor discovery, and data storage coordination.
+Business logic for scraping and data management.
 """
 
-import streamlit as st
-from typing import Dict, List
+from typing import Dict, List, Generator, Any
 from src.db import Database
 from src.oxylabs_client import scrape_product_details, search_competitors, scrape_multiple_products
 
 
 def scrape_and_store_product(asin: str, geo_location: str, domain: str) -> Dict:
-    """
-    Scrape product details and store in database.
-    
-    Args:
-        asin: Amazon Standard Identification Number
-        geo_location: Geographic location (zip/postal code)
-        domain: Amazon domain (com, ca, co.uk, etc.)
-        
-    Returns:
-        Dictionary containing scraped product data
-        
-    Raises:
-        Exception: If scraping fails or database operation fails
-    """
     data = scrape_product_details(asin, geo_location, domain)
     db = Database()
     db.insert_product(data)
     return data
 
 
-def fetch_and_store_competitors(parent_asin: str, domain: str, geo_location: str, pages: int = 2) -> List[Dict]:
+def fetch_and_store_competitors(parent_asin: str, domain: str, geo_location: str, pages: int = 2) -> Generator[Dict, None, List[Dict]]:
     """
-    Fetch competitor products and store them in the database.
+    Finds competitors for a given product.
     
-    Searches for competitors based on the parent product's categories and title,
-    then scrapes detailed information for each competitor.
-    
-    Args:
-        parent_asin: ASIN of the parent product
-        domain: Amazon domain to search
-        geo_location: Geographic location for search
-        pages: Number of pages to search per category (default: 2)
-        
-    Returns:
-        List of competitor product dictionaries
-        
-    Raises:
-        Exception: If parent product not found or scraping fails
+    1. Gets the parent product's category.
+    2. Searches Amazon for that category.
+    3. Scrapes details for the top results.
     """
     db = Database()
     parent = db.get_product(parent_asin)
@@ -57,7 +31,8 @@ def fetch_and_store_competitors(parent_asin: str, domain: str, geo_location: str
 
     search_domain = parent.get("amazon_domain", domain)
     search_geo = parent.get("geo_location", geo_location)
-    st.write(f"Using domain: {search_domain} | Geo Location: {search_geo}")
+    
+    yield {"status": "info", "message": f"Using domain: {search_domain} | Geo Location: {search_geo}"}
 
     search_categories = []
     if parent.get("categories"):
@@ -72,6 +47,8 @@ def fetch_and_store_competitors(parent_asin: str, domain: str, geo_location: str
     ))
 
     all_results = []
+    yield {"status": "info", "message": "Searching for competitors..."}
+    
     for category in search_categories[:3]:
         search_results = search_competitors(
             query_title=parent["title"],
@@ -86,25 +63,20 @@ def fetch_and_store_competitors(parent_asin: str, domain: str, geo_location: str
         r.get("asin") for r in all_results
         if r.get("asin") and r.get("asin") != parent_asin and r.get("title")
     ))
-
-    product_details = scrape_multiple_products(competitor_asins[:20], geo_location, domain)
+    
+    yield {"status": "info", "message": f"Found {len(competitor_asins)} potential competitors. Scraping details..."}
 
     stored_comps = []
-    for comp in product_details:
-        comp["parent_asin"] = parent_asin
-        db.insert_product(comp)
-        stored_comps.append(comp)
-
-    st.write("Competitor Summary")
-    for comp in stored_comps:
-        price = comp.get("price", "-")
-        currency = comp.get("currency", "-")
-        if isinstance(price, (int, float)):
-            price_str = f"{currency} {price:,.2f}" if currency else f"{price:,.2f}"
-        else:
-            price_str = str(price)
-
-        st.write(f"- {comp.get('title')} - {price_str}")
-    st.write("---")
+    for update in scrape_multiple_products(competitor_asins[:20], geo_location, domain):
+        if update["status"] == "success":
+            comp = update["product"]
+            comp["parent_asin"] = parent_asin
+            db.insert_product(comp)
+            stored_comps.append(comp)
+            yield {"status": "progress", "current": len(stored_comps), "total": min(len(competitor_asins), 20), "message": f"Found: {comp.get('title')}"}
+        elif update["status"] == "processing":
+            yield {"status": "progress", "current": update["current"], "total": update["total"], "message": f"Processing {update['asin']}..."}
+        elif update["status"] == "error":
+            yield {"status": "warning", "message": f"Failed to scrape {update['asin']}: {update['message']}"}
 
     return stored_comps

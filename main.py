@@ -6,7 +6,8 @@ using web scraping and AI-powered insights.
 """
 
 import streamlit as st
-from typing import Dict, Tuple
+import pandas as pd
+from typing import Dict, Tuple, List
 from src.services import scrape_and_store_product, fetch_and_store_competitors
 from src.db import Database
 from src.llm import analyze_competitors
@@ -25,12 +26,60 @@ def render_inputs() -> Tuple[str, str, str]:
     Returns:
         Tuple of (asin, geo_location, domain) strings
     """
-    asin = st.text_input("ASIN", placeholder="e.g., B0CX23VSAS")
-    geo = st.text_input("Zip/Postal Code", placeholder="e.g., 83980")
-    domain = st.selectbox("Domain", [
-        "com", "ca", "co.uk", "de", "fr", "it", "ae"
-    ])
+    col1, col2, col3 = st.columns([2, 1, 1])
+    with col1:
+        asin = st.text_input("ASIN", placeholder="e.g., B0CX23VSAS")
+    with col2:
+        geo = st.text_input("Zip/Postal Code", placeholder="e.g., 83980")
+    with col3:
+        domain = st.selectbox("Domain", [
+            "com", "ca", "co.uk", "de", "fr", "it", "ae"
+        ])
     return asin.strip(), geo.strip(), domain
+
+
+def render_dashboard(products: List[Dict]) -> None:
+    """
+    Render a dashboard with aggregate statistics and charts.
+    
+    Args:
+        products: List of all product dictionaries
+    """
+    if not products:
+        return
+
+    st.subheader("Dashboard")
+    
+    # Convert to DataFrame for easier analysis
+    df = pd.DataFrame(products)
+    
+    # Clean price column
+    def clean_price(p):
+        if isinstance(p, (int, float)):
+            return float(p)
+        return 0.0
+        
+    df['price_val'] = df['price'].apply(clean_price)
+    
+    # Metrics
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Total Products", len(df))
+    col2.metric("Avg Price", f"${df['price_val'].mean():.2f}")
+    col3.metric("Unique Brands", df['brand'].nunique())
+    
+    # Charts
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.caption("Price Distribution")
+        st.bar_chart(df.set_index('title')['price_val'])
+        
+    with col2:
+        if 'rating' in df.columns:
+            st.caption("Rating Distribution")
+            # Ensure rating is numeric
+            df['rating_val'] = pd.to_numeric(df['rating'], errors='coerce').fillna(0)
+            st.scatter_chart(df, x='price_val', y='rating_val')
 
 
 def render_product_card(product: Dict) -> None:
@@ -77,11 +126,34 @@ def main() -> None:
     Sets up the Streamlit page configuration and renders the main application UI,
     including product scraping, competitor discovery, and AI analysis features.
     """
-    st.set_page_config(page_title="Amazon Competitor Analysis", layout="wide")
+    st.set_page_config(
+        page_title="Amazon Competitor Analysis", 
+        layout="wide",
+        initial_sidebar_state="expanded"
+    )
+    
+    # Sidebar for navigation or global actions
+    with st.sidebar:
+        st.title("Navigation")
+        st.info("Use the main area to search and analyze products.")
+        
+        db = Database()
+        all_products = db.get_all_products()
+        if all_products:
+            df = pd.DataFrame(all_products)
+            csv = df.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                "Download Data (CSV)",
+                csv,
+                "amazon_products.csv",
+                "text/csv",
+                key='download-csv'
+            )
+
     render_header()
     asin, geo, domain = render_inputs()
 
-    if st.button("Scrape Product") and asin:
+    if st.button("Scrape Product", type="primary") and asin:
         try:
             with st.spinner("Scraping product..."):
                 scrape_and_store_product(asin, geo, domain)
@@ -92,7 +164,10 @@ def main() -> None:
 
     db = Database()
     products = db.get_all_products()
+    
     if products:
+        st.divider()
+        render_dashboard(products)
         st.divider()
         st.subheader("Product Scraped")
 
@@ -118,11 +193,33 @@ def main() -> None:
 
         db = Database()
         existing_comps = db.search_products({"parent_asin": selected_asin})
-
+        
+        comps = []
         if not existing_comps:
             try:
-                with st.spinner("Searching..."):
-                    comps = fetch_and_store_competitors(selected_asin, domain, geo)
+                progress_text = st.empty()
+                progress_bar = st.progress(0)
+                
+                generator = fetch_and_store_competitors(selected_asin, domain, geo)
+                
+                # Consume generator
+                while True:
+                    try:
+                        update = next(generator)
+                        if update["status"] == "info":
+                            progress_text.write(update["message"])
+                        elif update["status"] == "progress":
+                            progress_text.write(update["message"])
+                            if update.get("total"):
+                                progress_bar.progress(update["current"] / update["total"])
+                        elif update["status"] == "warning":
+                            st.warning(update["message"])
+                    except StopIteration as e:
+                        comps = e.value
+                        break
+                        
+                progress_text.empty()
+                progress_bar.empty()
                 st.success(f"Found {len(comps)} competitors!")
             except Exception as e:
                 st.error(f"Failed to fetch competitors: {str(e)}")
@@ -131,12 +228,46 @@ def main() -> None:
             st.info(f"Found {len(existing_comps)} existing competitors in the database.")
             comps = existing_comps
 
+        if comps:
+            st.write("Competitor Summary")
+            
+            # Competitor Table
+            comp_df = pd.DataFrame(comps)
+            if not comp_df.empty:
+                display_cols = ['title', 'price', 'rating', 'brand']
+                # Filter columns that exist
+                display_cols = [c for c in display_cols if c in comp_df.columns]
+                st.dataframe(comp_df[display_cols], use_container_width=True)
+            
+            st.write("---")
+
         col1, col2 = st.columns([3, 1])
         with col2:
             if st.button("Refresh Competitors"):
                 try:
-                    with st.spinner("Refreshing..."):
-                        comps = fetch_and_store_competitors(selected_asin, domain, geo)
+                    progress_text = st.empty()
+                    progress_bar = st.progress(0)
+                    
+                    generator = fetch_and_store_competitors(selected_asin, domain, geo)
+                    
+                    # Consume generator
+                    while True:
+                        try:
+                            update = next(generator)
+                            if update["status"] == "info":
+                                progress_text.write(update["message"])
+                            elif update["status"] == "progress":
+                                progress_text.write(update["message"])
+                                if update.get("total"):
+                                    progress_bar.progress(update["current"] / update["total"])
+                            elif update["status"] == "warning":
+                                st.warning(update["message"])
+                        except StopIteration as e:
+                            comps = e.value
+                            break
+                            
+                    progress_text.empty()
+                    progress_bar.empty()
                     st.success(f"Found {len(comps)} competitors!")
                 except Exception as e:
                     st.error(f"Failed to refresh competitors: {str(e)}")

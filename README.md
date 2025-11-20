@@ -1,47 +1,33 @@
-# Amazon Price Competitor Analysis
+# Amazon Competitor Analysis
 
-## Overview
+## About
 
-A full-stack web application for analyzing Amazon product prices and competitors using web scraping and AI-powered insights. Built with Python and Streamlit, this tool helps businesses and sellers understand their competitive landscape by scraping product data from Amazon, discovering competitors, and generating intelligent market analysis using OpenAI GPT-4.
+This is a web app I built to analyze Amazon products and their competitors. Give it an ASIN and it'll scrape the product details, find similar competing products, and use GPT-4 to generate insights about pricing and market positioning.
 
-The project demonstrates expertise in API integration, data processing, LLM integration, error handling, and modern Python development practices. It consists of a single Streamlit application that handles product scraping, competitor discovery, data storage, and AI-powered analysis.
+I built this to learn more about web scraping, working with APIs, and integrating LLMs into real applications. It uses Streamlit for the UI, Oxylabs for scraping (Amazon is tough to scrape directly), and OpenAI's API for analysis.
 
-## Features
+## What it does
 
 ### Product Scraping
-- Scrape Amazon product details by ASIN across multiple domains (com, ca, co.uk, de, fr, it, ae)
-- Extract comprehensive product information: price, rating, images, categories, brand, stock status
-- Support for multiple geographic locations and Amazon marketplaces
-- Real-time progress tracking and error handling
+- Enter any Amazon ASIN and it pulls all the product details (price, rating, images, etc.)
+- Works across different Amazon domains (.com, .ca, .co.uk, etc.)
+- Handles different locations/zip codes
 
-### Competitor Discovery
-- Automatically find competitors based on product categories and title
-- Multiple search strategies: featured, price ascending/descending, average rating
-- Deduplication and filtering of invalid products
-- Limits to top 20 competitors for efficiency
+### Finding Competitors  
+- Automatically searches for similar products based on categories
+- Grabs the top ~20 competitors
+- Uses different sorting strategies (price, rating, featured)
 
-### AI-Powered Analysis
-- Generate intelligent market insights using OpenAI GPT-4
-- Structured analysis output including:
-  - Market summary and trends
-  - Product positioning analysis
-  - Top competitors with key differentiators
-  - Actionable pricing and marketing recommendations
-- Currency-aware price comparisons
-- Multi-region analysis support
+### AI Analysis
+- Sends all the competitor data to GPT-4
+- Gets back structured insights about market trends, positioning, and pricing
+- Includes specific recommendations
 
-### Data Management
-- Local JSON database using TinyDB for data persistence
-- Track parent-child relationships between products and competitors
-- Timestamp tracking for data freshness
-- Efficient querying and searching capabilities
-
-### User Interface
-- Clean, intuitive Streamlit interface
-- Real-time progress bars and status updates
-- Product cards with images and key metrics
-- Pagination for large product lists
-- Error messages with user-friendly feedback
+### Data & UI
+- Saves everything locally in a JSON database (TinyDB)
+- Dashboard showing aggregate stats and charts
+- Can export data to CSV
+- Progress bars for longer operations
 
 ## Directory Structure
 
@@ -133,6 +119,20 @@ streamlit run main.py
 ```
 
 The application will open in your browser at `http://localhost:8501`.
+
+### Docker Support
+
+You can also run the application using Docker:
+
+1. **Build the image:**
+```bash
+docker build -t amazon-analysis .
+```
+
+2. **Run the container:**
+```bash
+docker run -p 8501:8501 --env-file .env amazon-analysis
+```
 
 ## Usage
 
