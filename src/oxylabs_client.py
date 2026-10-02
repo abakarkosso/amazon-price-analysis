@@ -4,11 +4,11 @@ Oxylabs API Client
 Handles interactions with the Oxylabs Realtime API for Amazon scraping.
 """
 
-import json
 import os
 import time
+from typing import Dict, Generator, List, Optional
+
 import requests
-from typing import Dict, List, Optional, Any, Generator
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -29,17 +29,29 @@ def extract_content(payload: Dict) -> Dict:
     return payload
 
 
+# Realtime scrapes can take a while, but a request must never hang the app forever.
+REQUEST_TIMEOUT_SECONDS = 90
+RETRYABLE_STATUS = {429, 500, 502, 503, 504}
+MAX_ATTEMPTS = 3
+
+
 def post_query(payload: Dict) -> Dict:
     username = os.getenv("OXYLABS_USERNAME")
     password = os.getenv("OXYLABS_PASSWORD")
-    
+
     if not username or not password:
         raise ValueError("Missing Oxylabs credentials in .env")
 
-    response = requests.post(OXYLABS_BASE_URL, auth=(username, password), json=payload)
-    response.raise_for_status()
-    
-    return response.json()
+    for attempt in range(1, MAX_ATTEMPTS + 1):
+        response = requests.post(OXYLABS_BASE_URL, auth=(username, password), json=payload,
+                                 timeout=REQUEST_TIMEOUT_SECONDS)
+        # Rate limits and server errors are usually transient; anything else (bad credentials,
+        # a bad query) won't fix itself, so it fails straight away.
+        if response.status_code in RETRYABLE_STATUS and attempt < MAX_ATTEMPTS:
+            time.sleep(2 ** attempt)
+            continue
+        response.raise_for_status()
+        return response.json()
 
 
 def normalize_product(content: Dict) -> Dict:
@@ -116,10 +128,9 @@ def clean_product_name(title: str) -> str:
     Returns:
         Cleaned product title
     """
-    if "-" in title:
-        title = title.split("-")[0]
-    if "|" in title:
-        title = title.split("|")[0]
+    # Split only on spaced separators: "Wi-Fi Router - AX1800" keeps "Wi-Fi Router".
+    for separator in (" - ", " | ", " – "):
+        title = title.split(separator)[0]
     return title.strip()
 
 
@@ -175,7 +186,8 @@ def normalize_search_result(item: Dict) -> Optional[Dict]:
     }
 
 
-def search_competitors(query_title: str, domain: str, categories: List[str], pages: int = 1, geo_location: str = "") -> List[Dict]:
+def search_competitors(query_title: str, domain: str, categories: List[str], pages: int = 1,
+                       geo_location: str = "") -> List[Dict]:
     """
     Search for competitor products on Amazon.
     
