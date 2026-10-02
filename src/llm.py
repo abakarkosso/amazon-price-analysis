@@ -1,14 +1,16 @@
 """
 LLM analysis module for competitor insights.
 
-Uses OpenAI GPT-4 to analyze competitors and provide actionable insights.
+Uses an OpenAI model (OPENAI_MODEL, default gpt-4o-mini) to analyze competitors and provide actionable insights.
 """
 
 import os
+from typing import Dict, List, Optional
+
 from dotenv import load_dotenv
-from src.db import Database
-from typing import Optional, List, Dict
 from pydantic import BaseModel, Field
+
+from src.db import Database
 
 load_dotenv()
 
@@ -45,11 +47,12 @@ def format_competitors(db: Database, parent_asin: str) -> List[Dict]:
     comps = db.search_products({"parent_asin": parent_asin})
     return [
         {
+            # Scrapes often come back without a title, price or rating; the analysis copes with gaps.
             "asin": c["asin"],
-            "title": c["title"],
-            "price": c["price"],
+            "title": c.get("title"),
+            "price": c.get("price"),
             "currency": c.get("currency"),
-            "rating": c["rating"],
+            "rating": c.get("rating"),
             "amazon_domain": c.get("amazon_domain")
         }
         for c in comps
@@ -57,7 +60,7 @@ def format_competitors(db: Database, parent_asin: str) -> List[Dict]:
 
 def analyze_competitors(asin: str) -> str:
     """
-    Analyze competitors using OpenAI GPT-4.
+    Analyze competitors with an OpenAI model.
     
     Generates comprehensive market analysis including summary, positioning,
     top competitors, and actionable recommendations.
@@ -71,9 +74,9 @@ def analyze_competitors(asin: str) -> str:
     Raises:
         Exception: If product not found, API call fails, or credentials missing
     """
-    from langchain_openai import ChatOpenAI
-    from langchain_core.prompts import PromptTemplate
     from langchain_core.output_parsers import PydanticOutputParser
+    from langchain_core.prompts import PromptTemplate
+    from langchain_openai import ChatOpenAI
 
     db = Database()
     product = db.get_product(asin)
@@ -109,23 +112,25 @@ def analyze_competitors(asin: str) -> str:
 
     prompt = PromptTemplate(
         template=template,
-        input_variables=["product_title", "brand", "price", "rating", "categories", "amazon_domain", "competitors"],
+        input_variables=["product_title", "brand", "price", "currency", "rating", "categories", "amazon_domain",
+                         "competitors"],
         partial_variables={"format_instructions": parser.get_format_instructions()}
     )
 
-    llm = ChatOpenAI(model="gpt-4", temperature=0)
+    # Configurable so the app isn't tied to one (possibly retired) model.
+    llm = ChatOpenAI(model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"), temperature=0)
 
     chain = prompt | llm | parser
 
     result = chain.invoke(
         {
-            "product_title": product["title"] if product else asin,
-            "brand": product.get("brand") if product else None,
-            "price": product.get("price") if product else None,
-            "currency": product.get("currency") if product else "",
-            "rating": product.get("rating") if product else None,
-            "categories": product.get("categories") if product else None,
-            "amazon_domain": product.get("amazon_domain") if product else "com",
+            "product_title": product.get("title") or asin,
+            "brand": product.get("brand"),
+            "price": product.get("price"),
+            "currency": product.get("currency") or "",
+            "rating": product.get("rating"),
+            "categories": product.get("categories"),
+            "amazon_domain": product.get("amazon_domain", "com"),
             "competitors": competitors,
         }
     )
