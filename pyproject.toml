@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "langchain>=0.3.27",
+    "pandas>=2.0.0",
     "langchain-openai>=0.3.33",
     "openai>=1.107.2",
     "python-dotenv>=1.1.1",
@@ -17,10 +18,20 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0.0",
-    "black>=23.0.0",
-    "flake8>=6.0.0",
+    "ruff>=0.6.0",
 ]
 
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+# Tests import the app as `src.*`, so the project root must be on the import path.
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+# Real problems (pyflakes, pycodestyle errors) plus import order; no stylistic churn.
+select = ["E", "F", "I"]
