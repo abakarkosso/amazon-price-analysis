@@ -2,9 +2,22 @@
 
 ## About
 
-This is a web app I built to analyze Amazon products and their competitors. Give it an ASIN and it'll scrape the product details, find similar competing products, and use GPT-4 to generate insights about pricing and market positioning.
+This is a web app I built to analyze Amazon products and their competitors. Give it an ASIN and it'll scrape the product details, find similar competing products, track the product's price over time, show where it sits against competitors, and use an OpenAI model to generate insights about pricing and market positioning.
 
 I built this to learn more about web scraping, working with APIs, and integrating LLMs into real applications. It uses Streamlit for the UI, Oxylabs for scraping (Amazon is tough to scrape directly), and OpenAI's API for analysis.
+
+## Try it in one minute (no API keys)
+
+Without scraping credentials the app starts in **demo mode** on bundled, clearly labelled sample data
+(fictional products with `DEMO` ASINs), so you can click through the whole flow:
+
+```bash
+uv sync
+uv run streamlit run main.py
+```
+
+Open http://localhost:8501, press **Start analyzing competitors**, then **Analyze with LLM** (a sample
+analysis is shown unless `OPENAI_API_KEY` is set). Scraping buttons are disabled in demo mode.
 
 ## What it does
 
@@ -19,13 +32,17 @@ I built this to learn more about web scraping, working with APIs, and integratin
 - Uses different sorting strategies (price, rating, featured)
 
 ### AI Analysis
-- Sends all the competitor data to GPT-4
+- Sends all the competitor data to an OpenAI model (`OPENAI_MODEL`, default `gpt-4o-mini`)
 - Gets back structured insights about market trends, positioning, and pricing
 - Includes specific recommendations
 
+### Price Tracking
+- Re-scraping a product updates it in place and records the new price, building a price history chart
+- Shows how many same-currency competitors are cheaper and the gap to the competitor median
+
 ### Data & UI
 - Saves everything locally in a JSON database (TinyDB)
-- Dashboard showing aggregate stats and charts
+- Dashboard showing aggregate stats and charts (average price is reported per currency, never mixed)
 - Can export data to CSV
 - Progress bars for longer operations
 
@@ -205,27 +222,33 @@ The application follows a clean architecture pattern with clear separation of co
 - Supports efficient querying and searching
 
 ### 4. AI Analysis
-- Uses OpenAI's GPT-4 model with structured output (Pydantic)
+- Uses an OpenAI model (`OPENAI_MODEL`) with structured output (Pydantic)
 - Generates comprehensive analysis including:
   - Market summary and trends
   - Product positioning analysis
   - Top competitors with key differentiators
   - Actionable pricing and marketing recommendations
-- Handles currency conversion and multi-region analysis
+- Keeps currencies separate: prices are compared only against competitors in the same currency
 
-## Code Quality
+## Testing
 
-- **Type Hints**: Full type annotation coverage for better code maintainability
-- **Docstrings**: Comprehensive documentation for all functions and classes
-- **Error Handling**: Robust error handling with user-friendly messages
-- **Code Organization**: Clean separation of concerns and modular design
-- **Best Practices**: Follows Python PEP 8 style guidelines
+```bash
+uv run pytest -q      # 23 tests
+uv run ruff check .
+```
+
+- Unit tests for the database (no duplicates on re-scrape, price history), the scraping client (timeouts,
+  retries on 429/5xx only, title cleaning), the competitor pipeline (market consistency, cost caps), the
+  analysis input, and the pricing maths.
+- A smoke test runs the real Streamlit app in demo mode with `streamlit.testing` and clicks through the
+  competitor analysis, so UI crashes fail CI.
+- GitHub Actions runs lint and tests on every push, using the locked dependencies in `uv.lock`.
 
 ## Notes
 
 ### API Requirements
 - **Oxylabs**: Requires active subscription for web scraping. Rate limits apply based on your plan.
-- **OpenAI**: Requires API key with GPT-4 access. Costs are based on API usage.
+- **OpenAI**: Requires an API key. Set `OPENAI_MODEL` to choose the model. Costs are based on API usage.
 - Both APIs are necessary for full functionality.
 
 ### Data Storage
@@ -237,7 +260,10 @@ The application follows a clean architecture pattern with clear separation of co
 ### Rate Limits
 - Oxylabs API: Rate limits depend on your subscription plan
 - OpenAI API: Rate limits depend on your API tier
-- The application includes delays (0.1s) between requests to respect rate limits
+- The application includes delays (0.1s) between requests, a 90 s timeout per request, and up to 3 attempts
+  with backoff on rate-limit (429) and server (5xx) errors
+- Each competitor search makes up to 4 sort orders x `SEARCH_PAGES` (default 2) x 3 categories search requests,
+  plus one request per competitor (`MAX_COMPETITORS`, default 20). Lower these to control Oxylabs cost
 
 ### Geographic Support
 - Supports multiple Amazon domains: com, ca, co.uk, de, fr, it, ae
@@ -247,7 +273,7 @@ The application follows a clean architecture pattern with clear separation of co
 ### Troubleshooting
 - **API Errors**: Check your credentials in `.env` file
 - **Scraping Failures**: Verify ASIN is correct and product exists on selected domain
-- **LLM Errors**: Ensure OpenAI API key is valid and has GPT-4 access
+- **LLM Errors**: Ensure the OpenAI API key is valid and `OPENAI_MODEL` names a model your key can use
 - **Database Issues**: Delete `data.json` to reset the database
 
 ## Limitations
@@ -256,23 +282,20 @@ The application follows a clean architecture pattern with clear separation of co
 - Rate limits apply based on your API plan
 - Data is stored locally (JSON file) - not suitable for production scale
 - Scraping may be subject to Amazon's terms of service
-- Competitor analysis is limited to top 20 competitors
+- Competitor analysis is limited to `MAX_COMPETITORS` competitors (default 20)
+- No currency conversion: products in different currencies are reported separately
+- Competitor relevance comes from Amazon search ranking for the product's title and categories; it is not
+  measured, so some "competitors" may be loosely related products
 - Real-time data depends on API availability
 
 ## Future Enhancements
 
-- Add support for more Amazon marketplaces
-- Implement data export (CSV, JSON, Excel)
-- Add price history tracking and alerts
-- Implement competitor price monitoring over time
-- Add filtering and sorting options for competitors
-- Support for batch ASIN processing
-- Add visualization charts for price comparisons
-- Implement user authentication and multi-user support
-- Add database migration to PostgreSQL for production use
-- Implement caching to reduce API calls
-- Add unit tests and integration tests
-- Implement CI/CD pipeline
+- Scheduled re-scraping so price history builds without clicking, plus price-drop alerts
+- Competitor price history over time
+- Measure competitor relevance on a labelled set of products and filter weak matches
+- Batch ASIN processing
+- PostgreSQL instead of TinyDB for multi-user use
+- Caching to reduce paid API calls
 
 ## License
 
@@ -288,7 +311,7 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 
 ---
 
-**Built with:** Python, Streamlit, LangChain, OpenAI GPT-4, Oxylabs API, TinyDB
+**Built with:** Python, Streamlit, LangChain, OpenAI, Oxylabs API, TinyDB, pytest, GitHub Actions
 
 **Author:** Haroun Abakar
 
