@@ -46,3 +46,10 @@ def test_competitor_count_is_capped_to_limit_scraping_cost(tmp_path, monkeypatch
                         lambda asins, g, d: seen.extend(asins) or iter(()))
     list(services.fetch_and_store_competitors("P", "com", "", db=db))
     assert len(seen) == 3
+
+
+def test_parse_asins_handles_spaces_duplicates_case_and_empty_items():
+    from src.services import parse_asins
+    raw = " B0CX23VSAS, b0abc12345 ,,B0CX23VSAS\nB0ZZZ99999 "
+    assert parse_asins(raw) == ["B0CX23VSAS", "B0ABC12345", "B0ZZZ99999"]
+    assert parse_asins("  ,  ") == []

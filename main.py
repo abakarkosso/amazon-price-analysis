@@ -17,7 +17,7 @@ import streamlit as st
 from src.analytics import price_change, price_position, price_summary
 from src.db import Database
 from src.llm import analyze_competitors
-from src.services import fetch_and_store_competitors, scrape_and_store_product
+from src.services import fetch_and_store_competitors, parse_asins, scrape_and_store_product
 
 DEMO_DIR = Path(__file__).parent / "demo"
 
@@ -48,7 +48,7 @@ def render_inputs() -> Tuple[str, str, str]:
     """
     col1, col2, col3 = st.columns([2, 1, 1])
     with col1:
-        asin = st.text_input("ASIN", placeholder="e.g., B0CX23VSAS")
+        asin = st.text_input("ASIN (or several, comma-separated)", placeholder="e.g., B0CX23VSAS, B0ABC12345")
     with col2:
         geo = st.text_input("Zip/Postal Code", placeholder="e.g., 83980")
     with col3:
@@ -186,14 +186,24 @@ def main() -> None:
     render_header()
     asin, geo, domain = render_inputs()
 
-    if st.button("Scrape Product", type="primary", disabled=DEMO_MODE) and asin:
-        try:
-            with st.spinner("Scraping product..."):
-                scrape_and_store_product(asin, geo, domain, db=db)
-            st.success("Product scraped successfully!")
-        except Exception as e:
-            st.error(f"Failed to scrape product: {str(e)}")
-            st.info("Please check your ASIN, credentials, and network connection.")
+    asins = parse_asins(asin)
+    if st.button("Scrape Product", type="primary", disabled=DEMO_MODE) and asins:
+        progress = st.progress(0)
+        failed = []
+        # One bad ASIN shouldn't stop the rest.
+        for i, a in enumerate(asins, 1):
+            try:
+                with st.spinner(f"Scraping {a} ({i} of {len(asins)})..."):
+                    scrape_and_store_product(a, geo, domain, db=db)
+            except Exception as e:
+                failed.append(a)
+                st.error(f"Failed to scrape {a}: {str(e)}")
+            progress.progress(i / len(asins))
+        progress.empty()
+        if len(failed) < len(asins):
+            st.success(f"Scraped {len(asins) - len(failed)} of {len(asins)} products.")
+        if failed:
+            st.info("Please check those ASINs, your credentials, and your network connection.")
 
     # Cards are for products the user tracks; their competitors show up in the analysis below.
     products = db.tracked_products()

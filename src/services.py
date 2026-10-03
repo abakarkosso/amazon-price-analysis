@@ -19,6 +19,12 @@ def _limit(name: str, default: int) -> int:
         return default
 
 
+def parse_asins(text: str) -> List[str]:
+    """Split a comma- or newline-separated list of ASINs, uppercased, de-duplicated, in input order."""
+    asins = (part.strip().upper() for part in text.replace("\n", ",").split(","))
+    return list(dict.fromkeys(a for a in asins if a))
+
+
 def scrape_and_store_product(asin: str, geo_location: str, domain: str, db: Optional[Database] = None) -> Dict:
     data = scrape_product_details(asin, geo_location, domain)
     (db or Database()).insert_product(data)
