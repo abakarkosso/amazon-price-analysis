@@ -63,3 +63,10 @@ def test_tracked_products_excludes_competitors(db):
     db.insert_product({"asin": "P"})
     db.insert_product({"asin": "C", "parent_asin": "P"})
     assert [p["asin"] for p in db.tracked_products()] == ["P"]
+
+
+def test_competitor_refreshes_build_their_own_price_history(db):
+    db.insert_product({"asin": "C1", "parent_asin": "P", "price": 44.99, "currency": "USD"})
+    db.insert_product({"asin": "C1", "parent_asin": "P", "price": 39.99, "currency": "USD"})
+    assert [h["price"] for h in db.price_history("C1")] == [44.99, 39.99]
+    assert len(db.search_products({"parent_asin": "P"})) == 1

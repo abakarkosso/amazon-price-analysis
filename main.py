@@ -243,6 +243,11 @@ def main() -> None:
             cols[1].metric("Competitor median", f"{parent.get('currency') or ''} {position['median']:.2f}")
             cols[2].metric("Gap to median", f"{position['gap_to_median_pct']:+.1f}%")
 
+        tracked = {c["asin"]: c.get("title") or c["asin"] for c in comps if len(db.price_history(c["asin"])) >= 2}
+        if tracked:
+            chosen = st.selectbox("Competitor price history", list(tracked), format_func=lambda a: tracked[a])
+            render_price_history(db, chosen)
+
         st.write("Competitor Summary")
         comp_df = pd.DataFrame(comps)
         display_cols = [c for c in ["title", "price", "currency", "rating", "brand"] if c in comp_df.columns]

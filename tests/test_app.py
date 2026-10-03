@@ -27,6 +27,8 @@ def test_demo_mode_competitor_analysis_flow(monkeypatch, tmp_path):
     metrics = {m.label: m.value for m in at.metric}
     assert metrics["Cheaper competitors"] == "3 of 6"
     assert metrics["Gap to median"] == "+4.3%"
+    # Competitors with recorded prices get their own history chart.
+    assert any(sb.label == "Competitor price history" for sb in at.selectbox)
     next(b for b in at.button if b.label == "Analyze with LLM").click().run()
     assert not at.exception
     assert any("Sample analysis" in m.value for m in at.markdown)
