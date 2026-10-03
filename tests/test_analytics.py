@@ -29,3 +29,17 @@ def test_price_position_against_same_currency_competitors():
 
 def test_price_position_without_comparable_competitors():
     assert price_position({"price": 10.0, "currency": "USD"}, [{"price": 5.0, "currency": "EUR"}]) == {"comparable": 0}
+
+
+def test_price_change_compares_the_last_two_prices():
+    from src.analytics import price_change
+    history = [{"price": 64.99}, {"price": 64.99}, {"price": 59.99}]
+    assert price_change(history) == -7.7
+
+
+def test_price_change_rise_flat_and_missing():
+    from src.analytics import price_change
+    assert price_change([{"price": 50.0}, {"price": 55.0}]) == 10.0
+    assert price_change([{"price": 50.0}, {"price": 50.0}]) == 0.0
+    assert price_change([{"price": 50.0}]) is None
+    assert price_change([]) is None

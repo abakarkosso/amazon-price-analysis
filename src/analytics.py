@@ -2,7 +2,7 @@
 Small, pure helpers behind the dashboard, kept out of the Streamlit code so they can be tested.
 """
 
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 
 def price_summary(products: List[Dict]) -> List[Dict]:
@@ -41,3 +41,11 @@ def price_position(product: Dict, competitors: List[Dict]) -> Dict:
         "median": median,
         "gap_to_median_pct": round((price - median) / median * 100, 1),
     }
+
+
+def price_change(history: List[Dict]) -> Optional[float]:
+    """Percent change between the last two recorded prices, or None without two prices."""
+    prices = [h["price"] for h in history if isinstance(h.get("price"), (int, float))]
+    if len(prices) < 2 or prices[-2] == 0:
+        return None
+    return round((prices[-1] - prices[-2]) / prices[-2] * 100, 1)

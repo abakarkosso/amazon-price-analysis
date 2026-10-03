@@ -14,7 +14,7 @@ from typing import Dict, Generator, List, Tuple
 import pandas as pd
 import streamlit as st
 
-from src.analytics import price_position, price_summary
+from src.analytics import price_change, price_position, price_summary
 from src.db import Database
 from src.llm import analyze_competitors
 from src.services import fetch_and_store_competitors, scrape_and_store_product
@@ -92,7 +92,7 @@ def render_dashboard(products: List[Dict]) -> None:
             st.scatter_chart(chart.dropna(subset=["Rating"]), x="Price", y="Rating")
 
 
-def render_product_card(product: Dict) -> None:
+def render_product_card(product: Dict, db: Database) -> None:
     """
     Render a product card with product details and analysis button.
 
@@ -113,7 +113,10 @@ def render_product_card(product: Dict) -> None:
             info_cols = st.columns(3)
             currency = product.get("currency", "")
             price = product.get("price", "-")
-            info_cols[0].metric("Price", f"{currency} {price}" if currency else price)
+            change = price_change(db.price_history(product["asin"]))
+            info_cols[0].metric("Price", f"{currency} {price}" if currency else price,
+                                delta=None if change is None else f"{change:+.1f}% since last check",
+                                delta_color="off")
             info_cols[1].write(f"Brand: {product.get('brand', '-')}")
             info_cols[2].write(f"ASIN: {product['asin']}")
 
@@ -210,7 +213,7 @@ def main() -> None:
         end_idx = min(start_idx + items_per_page, len(products))
         st.write(f"Showing {start_idx + 1} - {end_idx} of {len(products)} products")
         for p in products[start_idx:end_idx]:
-            render_product_card(p)
+            render_product_card(p, db)
 
     selected_asin = st.session_state.get("analyzing_asin")
     if not selected_asin:
