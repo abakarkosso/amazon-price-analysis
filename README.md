@@ -2,11 +2,14 @@
 
 ## About
 
-This is a web app I built to analyze Amazon products and their competitors. Give it an ASIN and it'll scrape the product details, find similar competing products, track the product's price over time, show where it sits against competitors, and use an OpenAI model to generate insights about pricing and market positioning.
+I built this to get better at scraping, APIs and putting an LLM into something people could actually use.
+You give it an ASIN. It scrapes the product, finds similar products to compare it against, keeps a price
+history, and asks an OpenAI model where the product sits on price and positioning.
 
-I built this to learn more about web scraping, working with APIs, and integrating LLMs into real applications. It uses Streamlit for the UI, Oxylabs for scraping (Amazon is tough to scrape directly), and OpenAI's API for analysis.
+Streamlit does the UI, Oxylabs does the scraping (Amazon blocks plain scrapers pretty quickly), and OpenAI
+writes the analysis.
 
-## Try it in one minute (no API keys)
+## Try it without any API keys
 
 Without scraping credentials the app starts in **demo mode** on bundled, clearly labelled sample data
 (fictional products with `DEMO` ASINs), so you can click through the whole flow:
